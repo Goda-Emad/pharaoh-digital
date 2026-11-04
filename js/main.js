@@ -349,3 +349,231 @@ function applyTheme(theme) {
 
 /* ============================================================
    MOBILE MENU
+   ============================================================ */
+function initMobileMenu() {
+  const hamburger  = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobile-menu');
+  if (!hamburger || !mobileMenu) return;
+
+  function openMenu(open) {
+    hamburger.setAttribute('aria-expanded', String(open));
+    mobileMenu.classList.toggle('open', open);
+    mobileMenu.setAttribute('aria-hidden', String(!open));
+  }
+
+  hamburger.addEventListener('click', () => {
+    const isOpen = hamburger.getAttribute('aria-expanded') === 'true';
+    openMenu(!isOpen);
+  });
+
+  // Close on nav link click
+  mobileMenu.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', () => openMenu(false));
+  });
+
+  // Close on outside click
+  document.addEventListener('click', e => {
+    if (!hamburger.contains(e.target) && !mobileMenu.contains(e.target)) {
+      openMenu(false);
+    }
+  });
+}
+
+/* ============================================================
+   FLOATING WHATSAPP POPUP
+   ============================================================ */
+function initFloatingWa() {
+  const btn     = document.getElementById('floating-wa-btn');
+  const popup   = document.getElementById('floating-wa-popup');
+  const closeBtn= document.getElementById('wa-popup-close');
+  if (!btn || !popup) return;
+
+  function openPopup(open) {
+    popup.classList.toggle('open', open);
+    popup.setAttribute('aria-hidden', String(!open));
+    btn.setAttribute('aria-expanded', String(open));
+    if (open) closeBtn.focus();
+  }
+
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const isOpen = popup.classList.contains('open');
+    openPopup(!isOpen);
+  });
+
+  closeBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    openPopup(false);
+    btn.focus();
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && popup.classList.contains('open')) {
+      openPopup(false);
+      btn.focus();
+    }
+  });
+
+  // Close on outside click
+  document.addEventListener('click', e => {
+    if (!btn.contains(e.target) && !popup.contains(e.target)) {
+      openPopup(false);
+    }
+  });
+}
+
+/* ============================================================
+   HERO WHATSAPP POPUP
+   ============================================================ */
+function initHeroWa() {
+  const triggers = document.querySelectorAll('.whatsapp-trigger');
+  const popup    = document.getElementById('hero-wa-popup');
+  if (!popup) return;
+
+  triggers.forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const isHidden = popup.classList.contains('hidden');
+      popup.classList.toggle('hidden', !isHidden);
+      btn.setAttribute('aria-expanded', String(isHidden));
+    });
+  });
+
+  document.addEventListener('click', e => {
+    if (!popup.contains(e.target) && !e.target.closest('.whatsapp-trigger')) {
+      popup.classList.add('hidden');
+      triggers.forEach(b => b.setAttribute('aria-expanded', 'false'));
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      popup.classList.add('hidden');
+      triggers.forEach(b => b.setAttribute('aria-expanded', 'false'));
+    }
+  });
+}
+
+/* ============================================================
+   CONTACT FORM — sends via WhatsApp
+   ============================================================ */
+function initContactForm() {
+  const form = document.getElementById('contact-form');
+  if (!form) return;
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    let valid = true;
+
+    // Name
+    const nameEl  = document.getElementById('cf-name');
+    const nameGrp = nameEl.closest('.form-group');
+    if (!nameEl.value.trim()) {
+      nameGrp.classList.add('has-error'); valid = false;
+    } else {
+      nameGrp.classList.remove('has-error');
+    }
+
+    // Email
+    const emailEl  = document.getElementById('cf-email');
+    const emailGrp = emailEl.closest('.form-group');
+    const emailOk  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value.trim());
+    if (!emailOk) {
+      emailGrp.classList.add('has-error'); valid = false;
+    } else {
+      emailGrp.classList.remove('has-error');
+    }
+
+    // Message
+    const msgEl  = document.getElementById('cf-message');
+    const msgGrp = msgEl.closest('.form-group');
+    if (!msgEl.value.trim()) {
+      msgGrp.classList.add('has-error'); valid = false;
+    } else {
+      msgGrp.classList.remove('has-error');
+    }
+
+    if (!valid) return;
+
+    // Build WhatsApp message from form values
+    const name    = nameEl.value.trim();
+    const email   = emailEl.value.trim();
+    const message = msgEl.value.trim();
+    const waText  = currentLang === 'es'
+      ? `Hola Pharaoh Digital, mi nombre es ${name} (${email}).\n\n${message}`
+      : `Hi Pharaoh Digital, my name is ${name} (${email}).\n\n${message}`;
+
+    // Default to Mexico number; user can switch in floating WA popup
+    const url = `https://wa.me/${CONFIG.wa.mx.number}?text=${encodeURIComponent(waText)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  });
+
+  // Live validation — remove error on input
+  ['cf-name','cf-email','cf-message'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => el.closest('.form-group').classList.remove('has-error'));
+  });
+}
+
+/* ============================================================
+   SCROLL REVEAL
+   ============================================================ */
+function initScrollReveal() {
+  // Don't animate if reduced motion is preferred
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const targets = document.querySelectorAll(
+    '.service-card, .value-card, .process-step, .project-card, .branch-card, .about-text, .about-logo-block'
+  );
+  targets.forEach(el => el.classList.add('reveal'));
+
+  if (!('IntersectionObserver' in window)) {
+    targets.forEach(el => el.classList.add('visible'));
+    return;
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    }),
+    { threshold: 0.12 }
+  );
+  targets.forEach(el => observer.observe(el));
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+
+  // Language
+  const lang = detectLang();
+  applyLang(lang);
+  document.getElementById('btn-en').addEventListener('click', () => applyLang('en'));
+  document.getElementById('btn-es').addEventListener('click', () => applyLang('es'));
+
+  // Theme
+  const theme = detectTheme();
+  applyTheme(theme);
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+  });
+
+  // Components
+  initMobileMenu();
+  initFloatingWa();
+  initHeroWa();
+  initContactForm();
+  initScrollReveal();
+});
+```
+
+---
+
+### `.nojekyll`
+
+```
